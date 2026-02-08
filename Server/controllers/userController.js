@@ -1,5 +1,7 @@
 import imagekit from "../config/imageKit.js";
+import { inngest } from "../inngest/index.js";
 import Connection from "../models/Connection.js";
+import Post from "../models/Post.js";
 import User from "../models/User.js";
 import fs from "fs";
 
@@ -199,9 +201,14 @@ export const sendConnectionRequest = async (req, res) => {
     });
 
     if (!connection) {
-      await Connection.create({
+      const newConnection = await Connection.create({
         from_user_id: userId,
         to_user_id: id,
+      });
+
+      await inngest.send({
+        name: "app/connection-request",
+        data: { connectionId: newConnection._id },
       });
 
       return res.json({
@@ -247,7 +254,7 @@ export const getUserConnections = async (req, res) => {
       connections: connections,
       followers: followers,
       following: following,
-      pending: pendingConnections,
+      pendingConnections: pendingConnections,
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -281,6 +288,24 @@ export const acceptConnectionRequest = async (req, res) => {
     await connection.save();
 
     res.json({ success: true, message: "connection accepted successfully" });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+// get user profile
+export const getUserProfile = async (req, res) => {
+  try {
+    const { profileId } = req.body;
+    const profile = await User.findById(profileId);
+
+    if (!profile) {
+      return res.json({ success: false, message: "Profile not found" });
+    }
+
+    const posts = await Post.find({ user: profileId }).populate("user");
+
+    res.json({ success: true, profile, posts });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

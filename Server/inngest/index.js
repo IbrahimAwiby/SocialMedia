@@ -3,6 +3,8 @@ import connectDB from "../config/db.js";
 import User from "../models/User.js";
 import Connection from "../models/Connection.js";
 import sendEmail from "../config/nodeMailer.js";
+import Story from "../models/Story.js";
+import Message from "../models/Message.js";
 
 export const inngest = new Inngest({
   id: "SocialMediaApp",
@@ -156,9 +158,65 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
   },
 );
 
+// inngest function to delete story after 24 hours
+const deleteStory = inngest.createFunction(
+  { id: "story-delete" },
+  { event: "app/story.delete" },
+
+  async ({ event, step }) => {
+    const { storyId } = event.data;
+    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await step.sleepUntil("wait-for-24-hours", in24Hours);
+    await step.run("delete-story", async () => {
+      await Story.findByIdAndDelete(storyId);
+      return { message: "Story deleted." };
+    });
+  },
+);
+
+const sendNotificationOfUnseenMessages = inngest.createFunction(
+  { id: "send-unseen-messages-notification" },
+  { cron: "0 9 * * *", tz: "Africa/Cairo" },
+  async ({ step }) => {
+    const messages = await Message.find({ seen: false }).populate("to_user_id");
+    const unseenCount = {};
+
+    messages.map((message) => {
+      unseenCount[message.to_user_id._id] =
+        (unseenCount[message.to_user_id._id] || 0) + 1;
+    });
+
+    for (const userId in unseenCount) {
+      const user = await User.findById(userId);
+
+      const subject = `📄 You have ${unseenCount[userId]} unseen messages`;
+
+      const body = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Hello ${user.full_name},</h2>
+        <p>You have <strong>${unseenCount[userId]} unseen messages</strong> waiting for you!</p>
+        <p>Check your messages to stay connected with your contacts.</p>
+        <a href="${process.env.FRONTEND_URL}/messages" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">View Messages</a>
+        <hr style="margin: 20px 0;" />
+        <p style="color: #666; font-size: 12px;">This is an automated message. Please do not reply.</p>
+      </div>
+      `;
+
+      await sendEmail({
+        to: user.email,
+        subject,
+        body,
+      });
+    }
+    return { messages: "Notification sent." };
+  },
+);
+
 export const functions = [
   syncUserCreation,
   syncUserUpdation,
   syncUserDeletion,
   sendNewConnectionRequestReminder,
+  deleteStory,
+  sendNotificationOfUnseenMessages,
 ];
