@@ -1,6 +1,8 @@
 import { Inngest } from "inngest";
 import connectDB from "../config/db.js";
 import User from "../models/User.js";
+import Connection from "../models/Connection.js";
+import sendEmail from "../config/nodeMailer.js";
 
 export const inngest = new Inngest({
   id: "SocialMediaApp",
@@ -90,4 +92,73 @@ const syncUserDeletion = inngest.createFunction(
   },
 );
 
-export const functions = [syncUserCreation, syncUserUpdation, syncUserDeletion];
+// Inngest function to send reminder when a new connection is added
+const sendNewConnectionRequestReminder = inngest.createFunction(
+  { id: "send-new-connection-request-reminder" },
+  { event: "app/connection-request" },
+  async ({ event, step }) => {
+    const { connectionId } = event.data;
+
+    await step.run("send-connection-request-mail", async () => {
+      const connection = await Connection.findById(connectionId).populate(
+        "from_user_id to_user_id",
+      );
+      const subject = `👋 New Connection Request`;
+      const body = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Hello ${connection.to_user_id.full_name},</h2>
+          <p><strong>${connection.from_user_id.full_name}</strong> sent you a connection request!</p>
+          <p>Check your profile to accept or decline the request.</p>
+          <a href="${process.env.FRONTEND_URL}/connections"></a>
+          <hr style="margin: 20px 0;" />
+          <p style="color: #666; font-size: 12px;">This is an automated message. Please do not reply.</p>
+        </div>
+      `;
+
+      await sendEmail({
+        to: connection.to_user_id.email,
+        subject,
+        body,
+      });
+    });
+
+    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await step.sleepUntil("wait-for-24-hours", in24Hours);
+    await step.run("send-connection-request-reminder", async () => {
+      const connection = await Connection.findById(connectionId).populate(
+        "from_user_id to_user_id",
+      );
+
+      if (connection.status === "accepted") {
+        return { message: "Already Accepted" };
+      }
+
+      const subject = `👋 New Connection Request`;
+      const body = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Hello ${connection.to_user_id.full_name},</h2>
+          <p><strong>${connection.from_user_id.full_name}</strong> sent you a connection request!</p>
+          <p>Check your profile to accept or decline the request.</p>
+          <a href="${process.env.FRONTEND_URL}/connections"></a>
+          <hr style="margin: 20px 0;" />
+          <p style="color: #666; font-size: 12px;">This is an automated message. Please do not reply.</p>
+        </div>
+      `;
+
+      await sendEmail({
+        to: connection.to_user_id.email,
+        subject,
+        body,
+      });
+
+      return { message: "Reminder Send" };
+    });
+  },
+);
+
+export const functions = [
+  syncUserCreation,
+  syncUserUpdation,
+  syncUserDeletion,
+  sendNewConnectionRequestReminder,
+];

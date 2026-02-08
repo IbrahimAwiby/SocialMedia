@@ -9,14 +9,22 @@ import Discover from "./pages/Discover";
 import Profile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
 import NotFound from "./pages/NotFound";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import Layout from "./pages/Layout";
-import {Toaster} from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
 
 const App = () => {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded) return null;
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      getToken().then((token) => console.log(token));
+    }
+  }, [user]);
 
   return (
     <>

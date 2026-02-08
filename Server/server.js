@@ -2,24 +2,30 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import { serve } from "inngest/express";
+import { clerkMiddleware } from "@clerk/express";
 
 import { inngest, functions } from "./inngest/index.js";
+import userRouter from "./routes/userRoutes.js";
+import connectDB from "./config/db.js";
 
-// App
+await connectDB()
+
+// ! App
 const app = express();
 
-// Middlewares
+// ! Middlewares
 app.use(express.json());
+app.use(clerkMiddleware());
 app.use(cors());
 
-// Routes
+// ! Routes
 app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
-
 app.use("/api/inngest", serve({ client: inngest, functions }));
+app.use("/api/user", userRouter);
 
-// Server
+// ! Server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
