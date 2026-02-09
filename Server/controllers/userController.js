@@ -15,7 +15,7 @@ export const getUserData = async (req, res) => {
         .status(401)
         .json({ success: false, message: "User Not Found" });
     }
-    res.json({ success: true, data: user });
+    res.json({ success: true, user });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -88,7 +88,7 @@ export const updateUserData = async (req, res) => {
 
     res.json({
       success: true,
-      user: user,
+      user,
       message: "Profile updated Successfully",
     });
   } catch (error) {
@@ -251,10 +251,10 @@ export const getUserConnections = async (req, res) => {
 
     res.json({
       success: true,
-      connections: connections,
-      followers: followers,
-      following: following,
-      pendingConnections: pendingConnections,
+      connections,
+      followers,
+      following,
+      pendingConnections,
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -281,7 +281,7 @@ export const acceptConnectionRequest = async (req, res) => {
     await user.save();
 
     const toUser = await User.findById(id);
-    user.connections.push(userId);
+    toUser.connections.push(userId);
     await toUser.save();
 
     connection.status = "accepted";

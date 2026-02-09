@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { dummyUserData } from "../assets/assets";
+import { useSelector } from "react-redux";
+import { useUser } from "@clerk/clerk-react";
+
+import Sidebar from "../components/Sidebar";
 import Loading from "../components/Loading";
 
 const Layout = () => {
-  const user = dummyUserData;
+  // Clerk auth state
+  const { isLoaded, isSignedIn } = useUser();
+
+  // Mongo user from Redux
+  const user = useSelector((state) => state.user.value);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -21,7 +28,23 @@ const Layout = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  return user ? (
+  // 1️⃣ Clerk still loading
+  if (!isLoaded) {
+    return <Loading />;
+  }
+
+  // 2️⃣ Not signed in → go to login
+  if (!isSignedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // 3️⃣ Signed in but Mongo user not loaded yet
+  if (!user) {
+    return <Loading />;
+  }
+
+  // 4️⃣ Everything is ready 🎉
+  return (
     <div className="w-full flex h-screen bg-gray-50">
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
@@ -30,24 +53,23 @@ const Layout = () => {
       </div>
 
       {/* Mobile Menu Button */}
-      {sidebarOpen ? (
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="absolute top-4 right-4 z-50 p-2.5 bg-white rounded-lg shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-300 sm:hidden"
-        >
-          <X className="w-5 h-5 text-gray-600 cursor-pointer" />
-        </button>
-      ) : (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="absolute top-4 right-4 z-50 p-2.5 bg-white rounded-lg shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-300 sm:hidden"
-        >
-          <Menu className="w-5 h-5 text-gray-600 cursor-pointer" />
-        </button>
-      )}
+      {isMobile &&
+        (sidebarOpen ? (
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="absolute top-4 right-4 z-50 p-2.5 bg-white rounded-lg shadow-md sm:hidden"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="absolute top-4 right-4 z-50 p-2.5 bg-white rounded-lg shadow-md sm:hidden"
+          >
+            <Menu className="w-5 h-5 text-gray-600" />
+          </button>
+        ))}
     </div>
-  ) : (
-    <Loading />
   );
 };
 

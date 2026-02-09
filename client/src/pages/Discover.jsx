@@ -1,23 +1,48 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { dummyConnectionsData } from "../assets/assets";
 import { Search } from "lucide-react";
 import UserCard from "../components/UserCard";
+import api from "../api/axios";
+import { useAuth } from "@clerk/clerk-react";
+import { toast } from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { fetchUser } from "../features/user/userSlice";
 
 const Discover = () => {
   const [input, setInput] = useState("");
-  const [users, setUsers] = useState(dummyConnectionsData);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { getToken } = useAuth();
+  const dispatch = useDispatch();
 
   const handleSearch = async (e) => {
     if (e.key === "Enter") {
-      setUsers([]);
-      setLoading(true);
-      setTimeout(() => {
-        setUsers(dummyConnectionsData);
+      try {
+        setUsers([]);
+        setLoading(true);
+        const { data } = await api.post(
+          "/api/user/discover",
+          { input },
+          {
+            headers: { Authorization: `Bearer ${await getToken()}` },
+          },
+        );
+
+        data.success ? setUsers(data.users) : toast.error(data.message);
         setLoading(false);
-      }, 1000);
+        setInput("");
+      } catch (error) {
+        toast.error(error.message);
+      }
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    getToken().then((token) => {
+      dispatch(fetchUser(token));
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-50 to-white">
@@ -59,7 +84,9 @@ const Discover = () => {
               <div className="absolute inset-0 rounded-full border-4 border-slate-200"></div>
               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 border-r-indigo-500 animate-spin"></div>
             </div>
-            <p className="text-slate-600 text-sm font-medium">Loading amazing people...</p>
+            <p className="text-slate-600 text-sm font-medium">
+              Loading amazing people...
+            </p>
           </div>
         )}
       </div>
