@@ -23,7 +23,7 @@ const ProfileModal = ({ setShowEdit }) => {
   const user = useSelector((state) => state.user.value);
   const dispatch = useDispatch();
   const { getToken } = useAuth();
-  
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [formErrors, setFormErrors] = useState({});
@@ -38,7 +38,7 @@ const ProfileModal = ({ setShowEdit }) => {
     username: user?.username || "",
     bio: user?.bio || "",
     location: user?.location || "",
-    profile_picture: null,
+    profile_picture: user?.imageUrl || "",
     cover_photo: null,
   });
 
@@ -59,12 +59,12 @@ const ProfileModal = ({ setShowEdit }) => {
 
     if (editForm.profile_picture) {
       profileUrl = URL.createObjectURL(editForm.profile_picture);
-      setPreview(prev => ({ ...prev, profile: profileUrl }));
+      setPreview((prev) => ({ ...prev, profile: profileUrl }));
     }
 
     if (editForm.cover_photo) {
       coverUrl = URL.createObjectURL(editForm.cover_photo);
-      setPreview(prev => ({ ...prev, cover: coverUrl }));
+      setPreview((prev) => ({ ...prev, cover: coverUrl }));
     }
 
     return () => {
@@ -74,30 +74,33 @@ const ProfileModal = ({ setShowEdit }) => {
   }, [editForm.profile_picture, editForm.cover_photo]);
 
   // Validate username availability
-  const checkUsernameAvailability = useCallback(async (username) => {
-    if (!username || username === user?.username) return true;
-    
-    // Add debouncing in production
-    // For now, basic validation
-    if (username.length < 3) return false;
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) return false;
-    
-    return true;
-  }, [user?.username]);
+  const checkUsernameAvailability = useCallback(
+    async (username) => {
+      if (!username || username === user?.username) return true;
+
+      // Add debouncing in production
+      // For now, basic validation
+      if (username.length < 3) return false;
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) return false;
+
+      return true;
+    },
+    [user?.username],
+  );
 
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    
+
     // Clear previous errors
-    setFormErrors(prev => ({ ...prev, [name]: "" }));
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
     setServerError("");
 
     // Special validation for username
     if (name === "username") {
       if (!/^[a-zA-Z0-9_]*$/.test(value)) {
-        setFormErrors(prev => ({ 
-          ...prev, 
-          username: "Only letters, numbers, and underscores allowed" 
+        setFormErrors((prev) => ({
+          ...prev,
+          username: "Only letters, numbers, and underscores allowed",
         }));
         return;
       }
@@ -105,14 +108,14 @@ const ProfileModal = ({ setShowEdit }) => {
       // Check availability (simulated - implement actual API call)
       const isAvailable = await checkUsernameAvailability(value);
       if (!isAvailable && value !== user?.username) {
-        setFormErrors(prev => ({ 
-          ...prev, 
-          username: "Username is already taken" 
+        setFormErrors((prev) => ({
+          ...prev,
+          username: "Username is already taken",
         }));
       }
     }
 
-    setEditForm(prev => ({
+    setEditForm((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -129,7 +132,13 @@ const ProfileModal = ({ setShowEdit }) => {
     }
 
     // Validate file type
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validImageTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
     if (!validImageTypes.includes(file.type)) {
       toast.error("Please select a valid image file (JPEG, PNG, GIF, WebP)");
       return;
@@ -143,26 +152,27 @@ const ProfileModal = ({ setShowEdit }) => {
           toast.error("Profile picture should be at least 100x100 pixels");
           return;
         }
-        
-        setEditForm(prev => ({ ...prev, [type]: file }));
-        setOriginalFiles(prev => ({ ...prev, [type]: file }));
+
+        setEditForm((prev) => ({ ...prev, [type]: file }));
+        setOriginalFiles((prev) => ({ ...prev, [type]: file }));
       };
       img.src = URL.createObjectURL(file);
     } else {
-      setEditForm(prev => ({ ...prev, [type]: file }));
-      setOriginalFiles(prev => ({ ...prev, [type]: file }));
+      setEditForm((prev) => ({ ...prev, [type]: file }));
+      setOriginalFiles((prev) => ({ ...prev, [type]: file }));
     }
   };
 
   const removeImage = (type) => {
-    setEditForm(prev => ({ ...prev, [type]: null }));
-    setPreview(prev => ({ 
-      ...prev, 
-      [type === "profile_picture" ? "profile" : "cover"]: type === "profile_picture" 
-        ? user?.profile_picture || "" 
-        : user?.cover_photo || "" 
+    setEditForm((prev) => ({ ...prev, [type]: null }));
+    setPreview((prev) => ({
+      ...prev,
+      [type === "profile_picture" ? "profile" : "cover"]:
+        type === "profile_picture"
+          ? user?.profile_picture || ""
+          : user?.cover_photo || "",
     }));
-    setOriginalFiles(prev => ({ ...prev, [type]: null }));
+    setOriginalFiles((prev) => ({ ...prev, [type]: null }));
   };
 
   const validateForm = async () => {
@@ -185,7 +195,8 @@ const ProfileModal = ({ setShowEdit }) => {
     } else if (editForm.username.length > 30) {
       errors.username = "Username must be less than 30 characters";
     } else if (!/^[a-zA-Z0-9_]+$/.test(editForm.username)) {
-      errors.username = "Username can only contain letters, numbers, and underscores";
+      errors.username =
+        "Username can only contain letters, numbers, and underscores";
     }
 
     // Bio validation
@@ -199,12 +210,12 @@ const ProfileModal = ({ setShowEdit }) => {
     }
 
     setFormErrors(errors);
-    
+
     if (Object.keys(errors).length > 0) {
       // Scroll to first error
       const firstError = Object.keys(errors)[0];
       const element = formRef.current?.querySelector(`[name="${firstError}"]`);
-      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
       element?.focus();
     }
 
@@ -219,7 +230,14 @@ const ProfileModal = ({ setShowEdit }) => {
 
     try {
       const userData = new FormData();
-      const { full_name, username, bio, location, profile_picture, cover_photo } = editForm;
+      const {
+        full_name,
+        username,
+        bio,
+        location,
+        profile_picture,
+        cover_photo,
+      } = editForm;
 
       // Only append changed fields
       if (full_name !== user?.full_name) {
@@ -234,7 +252,7 @@ const ProfileModal = ({ setShowEdit }) => {
       if (location !== user?.location) {
         userData.append("location", location);
       }
-      
+
       // Append files if changed
       if (profile_picture) {
         userData.append("profile", profile_picture);
@@ -244,30 +262,31 @@ const ProfileModal = ({ setShowEdit }) => {
       }
 
       const token = await getToken();
-      
+
       // Dispatch update user action
       const result = await dispatch(updateUser({ userData, token })).unwrap();
-      
+
       // Show success message
       toast.success(result.message || "Profile updated successfully!");
       setSaveSuccess(true);
-      
+
       // Close modal after success
       setTimeout(() => {
         setShowEdit(false);
       }, 1500);
-
     } catch (error) {
       console.error("Error updating profile:", error);
-      setServerError(error.message || "Failed to update profile. Please try again.");
-      
+      setServerError(
+        error.message || "Failed to update profile. Please try again.",
+      );
+
       if (error.message?.includes("username")) {
-        setFormErrors(prev => ({ 
-          ...prev, 
-          username: error.message 
+        setFormErrors((prev) => ({
+          ...prev,
+          username: error.message,
         }));
       }
-      
+
       toast.error(error.message || "Failed to update profile");
     } finally {
       setIsSaving(false);
@@ -283,7 +302,7 @@ const ProfileModal = ({ setShowEdit }) => {
   const handleDrop = (e, type) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const file = e.dataTransfer.files[0];
     if (file) {
       handleFileChange({ target: { files: [file] } }, type);
@@ -328,7 +347,7 @@ const ProfileModal = ({ setShowEdit }) => {
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
       onClick={(e) => e.target === e.currentTarget && setShowEdit(false)}
     >
@@ -385,7 +404,9 @@ const ProfileModal = ({ setShowEdit }) => {
                   <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
                     <Upload className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {preview.cover ? "Change cover photo" : "Upload cover photo"}
+                      {preview.cover
+                        ? "Change cover photo"
+                        : "Upload cover photo"}
                     </span>
                   </div>
                 </div>
@@ -401,7 +422,7 @@ const ProfileModal = ({ setShowEdit }) => {
                   <Upload className="w-12 h-12 text-slate-400" />
                 </div>
               )}
-              
+
               {/* Remove cover button */}
               {preview.cover && preview.cover !== user?.cover_photo && (
                 <button
@@ -452,20 +473,21 @@ const ProfileModal = ({ setShowEdit }) => {
                     <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                 </div>
-                
+
                 {/* Remove profile button */}
-                {preview.profile && preview.profile !== user?.profile_picture && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImage("profile_picture");
-                    }}
-                    className="absolute -top-1 -right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors z-20"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-                
+                {preview.profile &&
+                  preview.profile !== user?.profile_picture && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage("profile_picture");
+                      }}
+                      className="absolute -top-1 -right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors z-20"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+
                 <label className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white p-2 rounded-full cursor-pointer shadow-lg hover:scale-110 transition-transform duration-300 z-10">
                   <Camera className="w-4 h-4" />
                   <input
@@ -602,8 +624,8 @@ const ProfileModal = ({ setShowEdit }) => {
                     characterCount > maxBioLength
                       ? "text-red-500"
                       : characterCount > maxBioLength * 0.8
-                      ? "text-amber-500"
-                      : "text-slate-500"
+                        ? "text-amber-500"
+                        : "text-slate-500"
                   }`}
                 >
                   {characterCount}/{maxBioLength}
@@ -701,10 +723,10 @@ const ProfileModal = ({ setShowEdit }) => {
             <button
               onClick={handleSave}
               disabled={isSaving || saveSuccess || !hasChanges()}
-              className={`px-8 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-[120px] justify-center ${
+              className={`px-8 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-20  justify-center ${
                 saveSuccess
                   ? "bg-green-500 text-white"
-                  : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  : "bg-linear-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               }`}
             >
               {isSaving ? (

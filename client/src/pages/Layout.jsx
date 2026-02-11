@@ -28,10 +28,7 @@ const Layout = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // 1️⃣ Clerk still loading
-  if (!isLoaded) {
-    return <Loading />;
-  }
+
 
   // 2️⃣ Not signed in → go to login
   if (!isSignedIn) {

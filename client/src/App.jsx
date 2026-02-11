@@ -29,11 +29,22 @@ const App = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // 1. Check if Clerk is loaded and user is signed in
       if (!isLoaded || !user) return;
 
-      const token = await getToken();
-      dispatch(fetchUser(token));
-      dispatch(fetchConnections(token));
+      try {
+        // 2. Fetch the token (JWT)
+        const token = await getToken();
+
+        // 3. Log the token to the console
+        console.log("Clerk User Token:", token);
+
+        // 4. Continue with your existing dispatch logic
+        dispatch(fetchUser(token));
+        dispatch(fetchConnections(token));
+      } catch (error) {
+        console.error("Error fetching token:", error);
+      }
     };
 
     fetchData();

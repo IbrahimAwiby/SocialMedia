@@ -1,5 +1,4 @@
-import React from "react";
-import { dummyUserData } from "../assets/assets";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MapPin, MessageSquare, Plus, UserPlus } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -11,13 +10,22 @@ import { fetchUser } from "../features/user/userSlice";
 const UserCard = ({ user }) => {
   const navigate = useNavigate();
   const currentUser = useSelector((state) => state.user.value);
+  const [loading, setLoading] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const { getToken } = useAuth();
   const dispatch = useDispatch();
 
+  const isFollowing = currentUser?.following.includes(user._id);
+  const isConnected = currentUser?.connections.includes(user._id);
+
   const handleFollow = async () => {
+    if (followLoading) return;
+
+    setFollowLoading(true);
     try {
+      const endpoint = isFollowing ? "/api/user/unfollow" : "/api/user/follow";
       const { data } = await api.post(
-        "/api/user/follow",
+        endpoint,
         { id: user._id },
         {
           headers: { Authorization: `Bearer ${await getToken()}` },
@@ -32,15 +40,23 @@ const UserCard = ({ user }) => {
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setFollowLoading(false);
     }
   };
-  const handleConnectionRequest = async () => {
-    if (currentUser.connections.includes(user._id)) {
-      return navigate(`/messages/${user._id}`);
-    }
 
+  const handleConnectionRequest = async () => {
+    if (loading) return;
+
+    setLoading(true);
     try {
       const token = await getToken();
+
+      if (isConnected) {
+        navigate(`/messages/${user._id}`);
+        return;
+      }
+
       const { data } = await api.post(
         "/api/user/connect",
         { id: user._id },
@@ -51,63 +67,97 @@ const UserCard = ({ user }) => {
 
       if (data.success) {
         toast.success(data.message);
-        dispatch(fetchUser(token)); // 👈 مهم جدًا
+        dispatch(fetchUser(token));
       } else {
         toast.error(data.message);
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      key={user._id}
-      className="p-4 pt-6 flex flex-col justify-between w-72 shadow border border-gray-200 rounded-md"
-    >
-      <Link to={`/profile/${user._id}`}>
-        <div className="text-center">
+    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+      <div className="flex items-start gap-3 mb-3">
+        {/* Avatar */}
+        <Link to={`/profile/${user._id}`}>
           <img
             src={user.profile_picture}
-            alt=""
-            className="rounded-full w-16 shadow-md mx-auto"
+            alt={user.full_name}
+            className="w-14 h-14 rounded-full object-cover border border-gray-300"
           />
-          <p className="mt-4 font-semibold">{user.full_name}</p>
-          {user.username && (
-            <p className="text-gray-500 font-light">@{user.username}</p>
-          )}
-          {user.bio && <p className="text-gray-500 font-light">{user.bio}</p>}
-        </div>
-      </Link>
+        </Link>
 
-      <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-600">
-        <div className="flex items-center justify-center gap-1 border border-gray-300 rounded-full py-1 px-3">
-          <MapPin className="w-4 h-4" /> {user.location}
-        </div>
-        <div className="flex items-center justify-center gap-1 border border-gray-300 rounded-full py-1 px-3">
-          <span className="">{user.followers.length}</span> Followers
+        {/* User Info */}
+        <div className="flex-1 min-w-0">
+          <Link to={`/profile/${user._id}`}>
+            <h3 className="font-semibold text-gray-900 text-md truncate">
+              {user.full_name}
+            </h3>
+          </Link>
+          <p className="text-gray-500 text-sm truncate">@{user.username}</p>
+
+          {user.bio && (
+            <p className="text-gray-600 text-xs mt-1 line-clamp-2">
+              {user.bio}
+            </p>
+          )}
+
+          <div className="flex items-center gap-2 mt-2">
+            {user.location && (
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <MapPin className="w-3 h-3" />
+                <span className="truncate max-w-[80px]">{user.location}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+              <span>{user.followers?.length || 0} followers</span>
+              <span>•</span>
+              <span>{user.following?.length || 0} following</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex mt-4 gap-2">
-        {/* follow button */}
+      {/* Action Buttons */}
+      <div className="flex gap-2">
         <button
-          disabled={currentUser?.following.includes(user._id)}
-          className="flex-1 flex items-center justify-center gap-2 p-2 text-sm rounded bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-700 hover:to-purple-800 text-white active:scale-95 transition cursor-pointer"
           onClick={handleFollow}
+          disabled={followLoading}
+          className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+            isFollowing
+              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          } ${followLoading ? "opacity-75 cursor-not-allowed" : ""}`}
         >
-          <UserPlus className="w-4 h-4" />{" "}
-          {currentUser?.following.includes(user._id) ? "Following" : "Follow"}
+          <UserPlus className="w-3.5 h-3.5" />
+          {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
         </button>
-        {/* connection request button / message button */}
+
         <button
           onClick={handleConnectionRequest}
-          className="flex items-center justify-center w-16 border text-slate-500 group rounded-md cursor-pointer active:scale-95 transition"
+          disabled={loading}
+          className={`py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+            isConnected
+              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+          } ${loading ? "opacity-75 cursor-not-allowed" : ""}`}
         >
-          {currentUser?.connections.includes(user._id) ? (
-            <MessageSquare className="w-5 h-5 group-hover:scale-105 transition" />
+          {loading ? (
+            "..."
+          ) : isConnected ? (
+            <>
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Message</span>
+            </>
           ) : (
-            <Plus className="w-5 h-5 group-hover:scale-105 transition" />
+            <>
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Connect</span>
+            </>
           )}
         </button>
       </div>

@@ -37,7 +37,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             navigate("/");
           }}
           src={assets.logo}
-          className="w-26 ml-7 my-6 cursor-pointer hover:opacity-80 transition-opacity"
+          className="w-26 ml-7 my-4.5 cursor-pointer hover:opacity-80 transition-opacity"
           alt="logo"
         />
         <hr className="border-gray-300 mb-8" />
