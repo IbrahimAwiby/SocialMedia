@@ -53,38 +53,46 @@ const App = () => {
   useEffect(() => {
     if (!user) return;
 
-    const eventSource = new EventSource(
-      `${import.meta.env.VITE_BASEURL}/api/message/${user.id}`,
-    );
+    if (!import.meta.env.VITE_BASEURL) return;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        const senderId = message.from_user_id._id;
+    let eventSource;
 
-        const currentPath = pathnameRef.current;
-        const isInChatWithSender = currentPath === `/messages/${senderId}`;
+    try {
+      eventSource = new EventSource(
+        `${import.meta.env.VITE_BASEURL}/api/message/${user.id}`,
+      );
 
-        if (isInChatWithSender) {
-          dispatch(addMessage(message));
-        } else {
-          toast.custom((t) => <Notification t={t} message={message} />, {
-            position: "bottom-right",
-            duration: 5000,
-          });
+      eventSource.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          const senderId = message.from_user_id._id;
+
+          const currentPath = pathnameRef.current;
+          const isInChatWithSender = currentPath === `/messages/${senderId}`;
+
+          if (isInChatWithSender) {
+            dispatch(addMessage(message));
+          } else {
+            toast.custom((t) => <Notification t={t} message={message} />, {
+              position: "bottom-right",
+              duration: 5000,
+            });
+          }
+        } catch (err) {
+          console.error("SSE message parse error:", err);
         }
-      } catch (error) {
-        console.error("Error parsing SSE message:", error);
-      }
-    };
+      };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE connection error:", error);
-      eventSource.close();
-    };
+      eventSource.onerror = () => {
+        console.warn("SSE not supported or connection failed.");
+        eventSource.close();
+      };
+    } catch (err) {
+      console.warn("SSE initialization failed:", err);
+    }
 
     return () => {
-      eventSource.close();
+      if (eventSource) eventSource.close();
     };
   }, [user, dispatch]);
 
