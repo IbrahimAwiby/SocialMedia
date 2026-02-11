@@ -61,7 +61,7 @@ const Layout = () => {
         ) : (
           <button
             onClick={() => setSidebarOpen(true)}
-            className="absolute top-4 right-4 z-50 p-2.5 bg-white rounded-lg shadow-md sm:hidden"
+            className="absolute top-4 right-4 z-40 p-2.5 bg-white rounded-lg shadow-md sm:hidden"
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>

@@ -723,7 +723,7 @@ const ProfileModal = ({ setShowEdit }) => {
             <button
               onClick={handleSave}
               disabled={isSaving || saveSuccess || !hasChanges()}
-              className={`px-8 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-20  justify-center ${
+              className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-20  justify-center ${
                 saveSuccess
                   ? "bg-green-500 text-white"
                   : "bg-linear-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
