@@ -8,7 +8,7 @@ This project demonstrates real-world architecture, authentication, background jo
 ## 🌍 Live Demo
 
 🔗 Deployed on Vercel  
-(Add your live URL here)
+https://social-media-dr4f.vercel.app
 
 ---
 
